@@ -1,0 +1,16 @@
+FROM python:3.12-slim AS base
+WORKDIR /app
+
+COPY lynteron-shared-lib/src/ /tmp/shared-lib/src/
+COPY lynteron-shared-lib/pyproject.toml /tmp/shared-lib/
+RUN pip install --no-cache-dir "/tmp/shared-lib[events]" && rm -rf /tmp/shared-lib
+
+COPY lynteron-leads-service/pyproject.toml .
+RUN pip install --no-cache-dir .
+
+COPY lynteron-leads-service/app /app/app
+COPY lynteron-leads-service/alembic.ini /app/alembic.ini
+COPY lynteron-leads-service/migrations /app/migrations
+
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
