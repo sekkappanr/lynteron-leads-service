@@ -114,3 +114,7 @@ def mock_current_user():
     _FAKE_USER.roles = orig_roles
     _FAKE_USER.school_ids = orig_school_ids
     _FAKE_USER.school_codes = orig_school_codes
+
+# LYN-11: app.main imports run_migrations_or_fail from lynteronlib.database
+# (the real startup migration runner; unit tests never run migrations).
+sys.modules["lynteronlib.database"].run_migrations_or_fail = MagicMock()

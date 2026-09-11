@@ -50,6 +50,8 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
+        connection.execute(sa.text(f"CREATE SCHEMA IF NOT EXISTS {settings.DB_SCHEMA}"))
+        connection.commit()
         context.configure(
             connection=connection,
             target_metadata=target_metadata,

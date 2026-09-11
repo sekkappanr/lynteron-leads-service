@@ -3,8 +3,7 @@
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from alembic.config import Config as AlembicConfig
-from alembic import command as alembic_command
+from lynteronlib.database import run_migrations_or_fail
 
 from lynteronlib.auth.dependencies import configure_auth
 from lynteronlib.cache import CacheService
@@ -28,11 +27,11 @@ async def lifespan(app: FastAPI):
     configure_logging(settings.SERVICE_NAME, settings.LOG_LEVEL)
     configure_auth(settings.JWT_SECRET_KEY, settings.JWT_ALGORITHM)
     from . import models  # noqa: F401
-    try:
-        alembic_cfg = AlembicConfig("/app/alembic.ini")
-        alembic_command.upgrade(alembic_cfg, "head")
-    except Exception as _alembic_exc:
-        logger.warning("Alembic migration skipped (alembic.ini not found or error): %s", _alembic_exc)
+    # LYN-11: fail fast — a fatal migration error (unparseable alembic.ini,
+    # DB unreachable, orphaned revision) must abort startup with a CRITICAL
+    # log, not a WARNING that leaves the service serving an empty schema
+    # (root-cause class of DEF-9 / DEF-11).
+    run_migrations_or_fail("/app/alembic.ini", service_name=settings.SERVICE_NAME)
     publisher = EventPublisher(settings.RABBITMQ_URL)
     try:
         await publisher.connect()
