@@ -96,6 +96,11 @@ class LeadService:
 
         lead.status = status
         await self._session.flush()
+        # `updated_at` has a server-side onupdate default; the UPDATE expires it,
+        # and without an explicit refresh the router's LeadResponse.model_validate
+        # would lazy-load it outside the async greenlet -> MissingGreenlet (DEF-9
+        # retest, same class as DEF-1). Refresh so all columns are populated.
+        await self._session.refresh(lead)
         return lead
 
     async def get_lead_by_public_id(self, public_id: UUID) -> Optional[Lead]:
